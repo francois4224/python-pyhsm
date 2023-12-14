@@ -70,7 +70,7 @@ setup(
     },
     test_suite="test.test_init",
     tests_require=[],
-    install_requires=["pyserial >= 2.3", "pycrypto >= 2.1"],
+    install_requires=["pyserial >= 2.3", "pycryptodomex >= 2.1"],
     extras_require={"db": ["sqlalchemy"], "daemon": ["python-daemon"]},
     classifiers=[
         "License :: OSI Approved :: BSD License",
