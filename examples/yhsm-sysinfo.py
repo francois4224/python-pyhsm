@@ -13,9 +13,9 @@ device = "/dev/ttyACM0"
 
 # simplified arguments parsing
 d_argv = dict.fromkeys(sys.argv)
-debug = d_argv.has_key('-v')
+debug = d_argv.has_key("-v")
 
-if d_argv.has_key('-h'):
+if d_argv.has_key("-h"):
     sys.stderr.write("Syntax: %s [-v]\n" % (sys.argv[0]))
     sys.exit(0)
 
@@ -23,13 +23,13 @@ res = 0
 try:
     s = pyhsm.base.YHSM(device=device, debug=debug)
 
-    print "Version        : %s" % (s.info())
+    print("Version        : %s" % (s.info()))
 
     nonce = s.get_nonce()
-    print "Power-up count : %i" % (nonce.pu_count)
+    print("Power-up count : %i" % (nonce.pu_count))
 
-except pyhsm.exception.YHSM_Error, e:
-    print "ERROR: %s" % e
+except pyhsm.exception.YHSM_Error as e:
+    print("ERROR: %s" % e)
     res = 1
 
 sys.exit(res)

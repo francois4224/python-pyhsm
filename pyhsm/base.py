@@ -34,10 +34,10 @@ __all__ = [
     # constants
     # functions
     # classes
-    'YHSM'
+    "YHSM"
 ]
 
-#from pyhsm  import __version__
+# from pyhsm  import __version__
 import pyhsm.cmd
 import pyhsm.stick
 import pyhsm.stick_client
@@ -56,39 +56,46 @@ import pyhsm.validate_cmd
 import pyhsm.yubikey
 import pyhsm.soft_hsm
 
-class YHSM():
+
+class YHSM:
     """
     Base class for accessing a YubiHSM.
     """
 
     def __init__(self, device, debug=False, timeout=1, test_comm=True):
         self.debug = debug
-        if device.startswith('yhsm://'):
+        if device.startswith("yhsm://"):
             self.stick = pyhsm.stick_client.YHSM_Stick_Client(device)
         else:
-            self.stick = pyhsm.stick.YHSM_Stick(device, debug = self.debug, timeout = timeout)
+            self.stick = pyhsm.stick.YHSM_Stick(
+                device, debug=self.debug, timeout=timeout
+            )
 
-        if not self.reset(test_sync = False):
+        if not self.reset(test_sync=False):
             raise pyhsm.exception.YHSM_Error("Initialization of YubiHSM failed")
         self.version = pyhsm.version.YHSM_Version(self.info())
         # Check that this is a device we know how to talk to
         if self.version.sysinfo.protocol_ver != pyhsm.defines.YSM_PROTOCOL_VERSION:
-            raise pyhsm.exception.YHSM_Error("Unknown YubiHSM protocol version (%i, I speak %i)" % \
-                                                 (self.version.sysinfo.protocol_ver, \
-                                                      pyhsm.defines.YSM_PROTOCOL_VERSION))
+            raise pyhsm.exception.YHSM_Error(
+                "Unknown YubiHSM protocol version (%i, I speak %i)"
+                % (
+                    self.version.sysinfo.protocol_ver,
+                    pyhsm.defines.YSM_PROTOCOL_VERSION,
+                )
+            )
         # Check that communication isn't mangled (by something like 'stty onlcr')
         if test_comm:
             self.test_comm()
         return None
 
     def __repr__(self):
-        return '<%s instance at %s: %s>' % (
+        return "<%s instance at %s: %s>" % (
             self.__class__.__name__,
             hex(id(self)),
-            self.stick.device
-            )
+            self.stick.device,
+        )
 
-    def reset(self, test_sync = True):
+    def reset(self, test_sync=True):
         """
         Perform stream resynchronization.
 
@@ -101,7 +108,7 @@ class YHSM():
         pyhsm.cmd.reset(self.stick)
         if test_sync:
             # Now verify we are in sync
-            data = 'ekoeko'
+            data = "ekoeko"
             echo = self.echo(data)
             # XXX analyze 'echo' to see if we are in config mode, and produce a
             # nice exception if we are.
@@ -120,8 +127,7 @@ class YHSM():
         @rtype: bool
         """
         if type(new) is not bool:
-            raise pyhsm.exception.YHSM_WrongInputType(
-                'new', bool, type(new))
+            raise pyhsm.exception.YHSM_WrongInputType("new", bool, type(new))
         old = self.debug
         self.debug = new
         self.stick.set_debug(new)
@@ -134,18 +140,20 @@ class YHSM():
         In some scenarios, communications with the YubiHSM might be affected
         by terminal line settings turning CR into LF for example.
         """
-        data = ''.join([chr(x) for x in range(256)])
-        data = data + '0d0a0d0a'.decode('hex')
-        chunk_size = pyhsm.defines.YSM_MAX_PKT_SIZE - 10 # max size of echo
+        data = bytes([x for x in range(256)]) + bytes.fromhex("0d0a0d0a")
+        chunk_size = pyhsm.defines.YSM_MAX_PKT_SIZE - 10  # max size of echo
         count = 0
         while data:
             this = data[:chunk_size]
             data = data[chunk_size:]
             res = self.echo(this)
-            for i in xrange(len(this)):
+            for i in range(len(this)):
                 if res[i] != this[i]:
-                    msg = "Echo test failed at position %i (0x%x != 0x%x)" \
-                        % (count + i, ord(res[i]), ord(this[i]))
+                    msg = "Echo test failed at position %i (0x%x != 0x%x)" % (
+                        count + i,
+                        ord(res[i]),
+                        ord(this[i]),
+                    )
                     raise pyhsm.exception.YHSM_Error(msg)
             count += len(this)
 
@@ -165,7 +173,7 @@ class YHSM():
         return pyhsm.basic_cmd.YHSM_Cmd_Echo(self.stick, data).execute()
 
     def info(self):
-        """ Get firmware version and unique ID from YubiHSM.
+        """Get firmware version and unique ID from YubiHSM.
 
         @return: System information
         @rtype: L{YHSM_Cmd_System_Info}
@@ -216,7 +224,7 @@ class YHSM():
         @rtype: L{YHSM_NonceResponse}
 
         @see: L{pyhsm.basic_cmd.YHSM_Cmd_Nonce_Get}
-       """
+        """
         return pyhsm.basic_cmd.YHSM_Cmd_Nonce_Get(self.stick, increment).execute()
 
     def load_temp_key(self, nonce, key_handle, aead):
@@ -235,9 +243,11 @@ class YHSM():
 
         @see: L{pyhsm.basic_cmd.YHSM_Cmd_Temp_Key_Load}
         """
-        return pyhsm.basic_cmd.YHSM_Cmd_Temp_Key_Load(self.stick, nonce, key_handle, aead).execute()
+        return pyhsm.basic_cmd.YHSM_Cmd_Temp_Key_Load(
+            self.stick, nonce, key_handle, aead
+        ).execute()
 
-    def unlock(self, password = None, otp = None):
+    def unlock(self, password=None, otp=None):
         """
         Unlock the YubiHSM using the master key and/or a YubiKey OTP.
 
@@ -262,23 +272,36 @@ class YHSM():
         """
         if otp is not None and not self.version.have_unlock():
             # only in 1.0
-            raise pyhsm.exception.YHSM_Error("Your YubiHSM does not support OTP unlocking.")
+            raise pyhsm.exception.YHSM_Error(
+                "Your YubiHSM does not support OTP unlocking."
+            )
         if password is not None:
             if self.version.have_key_storage_unlock():
                 # 0.9.x
-                res = pyhsm.basic_cmd.YHSM_Cmd_Key_Storage_Unlock(self.stick, password).execute()
+                res = pyhsm.basic_cmd.YHSM_Cmd_Key_Storage_Unlock(
+                    self.stick, password
+                ).execute()
             elif self.version.have_key_store_decrypt():
                 # 1.0
-                res = pyhsm.basic_cmd.YHSM_Cmd_Key_Store_Decrypt(self.stick, password).execute()
+                res = pyhsm.basic_cmd.YHSM_Cmd_Key_Store_Decrypt(
+                    self.stick, password
+                ).execute()
             else:
-                raise pyhsm.exception.YHSM_Error("Don't know how to unlock your YubiHSM.")
+                raise pyhsm.exception.YHSM_Error(
+                    "Don't know how to unlock your YubiHSM."
+                )
         else:
             res = True
         if res and otp is not None:
-            (public_id, otp,) = pyhsm.yubikey.split_id_otp(otp)
-            public_id = pyhsm.yubikey.modhex_decode(public_id).decode('hex')
-            otp = pyhsm.yubikey.modhex_decode(otp).decode('hex')
-            return pyhsm.basic_cmd.YHSM_Cmd_HSM_Unlock(self.stick, public_id, otp).execute()
+            (
+                public_id,
+                otp,
+            ) = pyhsm.yubikey.split_id_otp(otp)
+            public_id = pyhsm.yubikey.modhex_decode(public_id).decode("hex")
+            otp = pyhsm.yubikey.modhex_decode(otp).decode("hex")
+            return pyhsm.basic_cmd.YHSM_Cmd_HSM_Unlock(
+                self.stick, public_id, otp
+            ).execute()
         return res
 
     def key_storage_unlock(self, password):
@@ -286,7 +309,7 @@ class YHSM():
         @deprecated: Too specific (and hard to remember) name.
         @see: L{unlock}
         """
-        return self.unlock(password = password)
+        return self.unlock(password=password)
 
     #
     # AEAD related commands
@@ -331,7 +354,7 @@ class YHSM():
         """
         return pyhsm.buffer_cmd.YHSM_Cmd_Buffer_Load(self.stick, data, offset).execute()
 
-    def load_random(self, num_bytes, offset = 0):
+    def load_random(self, num_bytes, offset=0):
         """
         Ask YubiHSM to generate a number of random bytes to any offset of it's internal
         buffer.
@@ -348,7 +371,9 @@ class YHSM():
 
         @see: L{pyhsm.buffer_cmd.YHSM_Cmd_Buffer_Random_Load}
         """
-        return pyhsm.buffer_cmd.YHSM_Cmd_Buffer_Random_Load(self.stick, num_bytes, offset).execute()
+        return pyhsm.buffer_cmd.YHSM_Cmd_Buffer_Random_Load(
+            self.stick, num_bytes, offset
+        ).execute()
 
     def generate_aead_simple(self, nonce, key_handle, data):
         """
@@ -367,7 +392,9 @@ class YHSM():
 
         @see: L{pyhsm.aead_cmd.YHSM_Cmd_AEAD_Generate}
         """
-        return pyhsm.aead_cmd.YHSM_Cmd_AEAD_Generate(self.stick, nonce, key_handle, data).execute()
+        return pyhsm.aead_cmd.YHSM_Cmd_AEAD_Generate(
+            self.stick, nonce, key_handle, data
+        ).execute()
 
     def generate_aead_random(self, nonce, key_handle, num_bytes):
         """
@@ -387,7 +414,9 @@ class YHSM():
 
         @see: L{pyhsm.aead_cmd.YHSM_Cmd_AEAD_Random_Generate}
         """
-        return pyhsm.aead_cmd.YHSM_Cmd_AEAD_Random_Generate(self.stick, nonce, key_handle, num_bytes).execute()
+        return pyhsm.aead_cmd.YHSM_Cmd_AEAD_Random_Generate(
+            self.stick, nonce, key_handle, num_bytes
+        ).execute()
 
     def generate_aead(self, nonce, key_handle):
         """
@@ -406,7 +435,9 @@ class YHSM():
 
         @see: L{pyhsm.aead_cmd.YHSM_Cmd_AEAD_Buffer_Generate}
         """
-        return pyhsm.aead_cmd.YHSM_Cmd_AEAD_Buffer_Generate(self.stick, nonce, key_handle).execute()
+        return pyhsm.aead_cmd.YHSM_Cmd_AEAD_Buffer_Generate(
+            self.stick, nonce, key_handle
+        ).execute()
 
     def validate_aead(self, nonce, key_handle, aead, cleartext):
         """
@@ -431,7 +462,9 @@ class YHSM():
 
         @see: L{pyhsm.aead_cmd.YHSM_Cmd_AEAD_Decrypt_Cmp}
         """
-        return pyhsm.aead_cmd.YHSM_Cmd_AEAD_Decrypt_Cmp(self.stick, nonce, key_handle, aead, cleartext).execute()
+        return pyhsm.aead_cmd.YHSM_Cmd_AEAD_Decrypt_Cmp(
+            self.stick, nonce, key_handle, aead, cleartext
+        ).execute()
 
     def validate_aead_otp(self, public_id, otp, key_handle, aead):
         """
@@ -453,15 +486,16 @@ class YHSM():
         @see: L{pyhsm.validate_cmd.YHSM_Cmd_AEAD_Validate_OTP}
         """
         if type(public_id) is not str:
-            assert()
+            assert ()
         if type(otp) is not str:
-            assert()
+            assert ()
         if type(key_handle) is not int:
-            assert()
+            assert ()
         if type(aead) is not str:
-            assert()
-        return pyhsm.validate_cmd.YHSM_Cmd_AEAD_Validate_OTP( \
-            self.stick, public_id, otp, key_handle, aead).execute()
+            assert ()
+        return pyhsm.validate_cmd.YHSM_Cmd_AEAD_Validate_OTP(
+            self.stick, public_id, otp, key_handle, aead
+        ).execute()
 
     #
     # Debug/testing commands.
@@ -475,7 +509,9 @@ class YHSM():
 
         @see: L{pyhsm.debug_cmd.YHSM_Cmd_Monitor_Exit}
         """
-        return pyhsm.debug_cmd.YHSM_Cmd_Monitor_Exit(self.stick).execute(read_response=False)
+        return pyhsm.debug_cmd.YHSM_Cmd_Monitor_Exit(self.stick).execute(
+            read_response=False
+        )
 
     def get_raw_device(self):
         """
@@ -502,7 +538,7 @@ class YHSM():
     #
     # AES ECB commands
     #
-    def aes_ecb_encrypt(self, key_handle, plaintext):
+    def aes_ecb_encrypt(self, key_handle, plaintext: bytes) -> bytes:
         """
         AES ECB encrypt using a key handle.
 
@@ -518,10 +554,11 @@ class YHSM():
 
         @see: L{pyhsm.aes_ecb_cmd.YHSM_Cmd_AES_ECB_Encrypt}
         """
-        return pyhsm.aes_ecb_cmd.YHSM_Cmd_AES_ECB_Encrypt( \
-            self.stick, key_handle, plaintext).execute()
+        return pyhsm.aes_ecb_cmd.YHSM_Cmd_AES_ECB_Encrypt(
+            self.stick, key_handle, plaintext
+        ).execute()
 
-    def aes_ecb_decrypt(self, key_handle, ciphertext):
+    def aes_ecb_decrypt(self, key_handle, ciphertext: bytes) -> bytes:
         """
         AES ECB decrypt using a key handle.
 
@@ -537,8 +574,9 @@ class YHSM():
 
         @see: L{pyhsm.aes_ecb_cmd.YHSM_Cmd_AES_ECB_Decrypt}
         """
-        return pyhsm.aes_ecb_cmd.YHSM_Cmd_AES_ECB_Decrypt( \
-            self.stick, key_handle, ciphertext).execute()
+        return pyhsm.aes_ecb_cmd.YHSM_Cmd_AES_ECB_Decrypt(
+            self.stick, key_handle, ciphertext
+        ).execute()
 
     def aes_ecb_compare(self, key_handle, ciphertext, plaintext):
         """
@@ -559,13 +597,14 @@ class YHSM():
 
         @see: L{pyhsm.aes_ecb_cmd.YHSM_Cmd_AES_ECB_Compare}
         """
-        return pyhsm.aes_ecb_cmd.YHSM_Cmd_AES_ECB_Compare( \
-            self.stick, key_handle, ciphertext, plaintext).execute()
+        return pyhsm.aes_ecb_cmd.YHSM_Cmd_AES_ECB_Compare(
+            self.stick, key_handle, ciphertext, plaintext
+        ).execute()
 
     #
     # HMAC commands
     #
-    def hmac_sha1(self, key_handle, data, flags = None, final = True, to_buffer = False):
+    def hmac_sha1(self, key_handle, data, flags=None, final=True, to_buffer=False):
         """
         Have the YubiHSM generate a HMAC SHA1 of 'data' using a key handle.
 
@@ -589,14 +628,14 @@ class YHSM():
 
         @see: L{pyhsm.hmac_cmd.YHSM_Cmd_HMAC_SHA1_Write}
         """
-        return pyhsm.hmac_cmd.YHSM_Cmd_HMAC_SHA1_Write( \
-            self.stick, key_handle, data, flags = flags, final = final, to_buffer = to_buffer).execute()
-
+        return pyhsm.hmac_cmd.YHSM_Cmd_HMAC_SHA1_Write(
+            self.stick, key_handle, data, flags=flags, final=final, to_buffer=to_buffer
+        ).execute()
 
     #
     # Internal YubiKey database related commands
     #
-    def db_store_yubikey(self, public_id, key_handle, aead, nonce = None):
+    def db_store_yubikey(self, public_id, key_handle, aead, nonce=None):
         """
         Ask YubiHSM to store data about a YubiKey in the internal database (not buffer).
 
@@ -619,9 +658,12 @@ class YHSM():
         """
         if nonce is not None and not self.version.have_YSM_DB_YUBIKEY_AEAD_STORE2():
             # introduced in 1.0.4
-            raise pyhsm.exception.YHSM_Error("YubiHSM does not support nonce != public_id.")
-        return pyhsm.db_cmd.YHSM_Cmd_DB_YubiKey_Store( \
-            self.stick, public_id, key_handle, aead, nonce = nonce).execute()
+            raise pyhsm.exception.YHSM_Error(
+                "YubiHSM does not support nonce != public_id."
+            )
+        return pyhsm.db_cmd.YHSM_Cmd_DB_YubiKey_Store(
+            self.stick, public_id, key_handle, aead, nonce=nonce
+        ).execute()
 
     def db_validate_yubikey_otp(self, public_id, otp):
         """
@@ -638,5 +680,6 @@ class YHSM():
 
         @see: L{pyhsm.db_cmd.YHSM_Cmd_DB_Validate_OTP}
         """
-        return pyhsm.db_cmd.YHSM_Cmd_DB_Validate_OTP( \
-            self.stick, public_id, otp).execute()
+        return pyhsm.db_cmd.YHSM_Cmd_DB_Validate_OTP(
+            self.stick, public_id, otp
+        ).execute()

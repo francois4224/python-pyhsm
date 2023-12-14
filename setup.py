@@ -35,57 +35,52 @@ VERSION_PATTERN = re.compile(r"(?m)^__version__\s*=\s*['\"](.+)['\"]$")
 def get_version():
     """Return the current version as defined by yubico/yubico_version.py."""
 
-    with open('pyhsm/__init__.py', 'r') as f:
+    with open("pyhsm/__init__.py", "r") as f:
         match = VERSION_PATTERN.search(f.read())
         return match.group(1)
 
+
 setup(
-    name='pyhsm',
+    name="pyhsm",
     version=get_version(),
-    description='Python code for talking to a YubiHSM',
-    author='Dain Nilsson',
-    author_email='dain@yubico.com',
-    url='https://github.com/Yubico/python-pyhsm',
-    license='BSD 2 clause',
-    packages=find_packages(exclude=['test']),
+    description="Python code for talking to a YubiHSM",
+    author="Dain Nilsson",
+    author_email="dain@yubico.com",
+    url="https://github.com/Yubico/python-pyhsm",
+    license="BSD 2 clause",
+    packages=find_packages(exclude=["test"]),
     entry_points={
-        'console_scripts': [
+        "console_scripts": [
             # tools
-            'yhsm-daemon = pyhsm.stick_daemon:main [daemon]',
-            'yhsm-decrypt-aead = pyhsm.tools.decrypt_aead:main',
-            'yhsm-generate-keys = pyhsm.tools.generate_keys:main',
-            'yhsm-keystore-unlock = pyhsm.tools.keystore_unlock:main',
-            'yhsm-linux-add-entropy = pyhsm.tools.linux_add_entropy:main',
+            "yhsm-daemon = pyhsm.stick_daemon:main [daemon]",
+            "yhsm-decrypt-aead = pyhsm.tools.decrypt_aead:main",
+            "yhsm-generate-keys = pyhsm.tools.generate_keys:main",
+            "yhsm-keystore-unlock = pyhsm.tools.keystore_unlock:main",
+            "yhsm-linux-add-entropy = pyhsm.tools.linux_add_entropy:main",
             # ksm
-            'yhsm-yubikey-ksm = pyhsm.ksm.yubikey_ksm:main [db,daemon]',
-            'yhsm-import-keys = pyhsm.ksm.import_keys:main',
-            'yhsm-db-export = pyhsm.ksm.db_export:main [db]',
-            'yhsm-db-import = pyhsm.ksm.db_import:main [db]',
+            "yhsm-yubikey-ksm = pyhsm.ksm.yubikey_ksm:main [db,daemon]",
+            "yhsm-import-keys = pyhsm.ksm.import_keys:main",
+            "yhsm-db-export = pyhsm.ksm.db_export:main [db]",
+            "yhsm-db-import = pyhsm.ksm.db_import:main [db]",
             # validation server
-            'yhsm-validation-server = pyhsm.val.validation_server:main',
-            'yhsm-validate-otp = pyhsm.val.validate_otp:main',
-            'yhsm-init-oath-token = pyhsm.val.init_oath_token:main'
+            "yhsm-validation-server = pyhsm.val.validation_server:main",
+            "yhsm-validate-otp = pyhsm.val.validate_otp:main",
+            "yhsm-init-oath-token = pyhsm.val.init_oath_token:main",
         ]
     },
-    test_suite='test.test_init',
+    test_suite="test.test_init",
     tests_require=[],
-    install_requires=[
-        'pyserial >= 2.3',
-        'pycrypto >= 2.1'
-    ],
-    extras_require={
-        'db': ['sqlalchemy'],
-        'daemon': ['python-daemon']
-    },
+    install_requires=["pyserial >= 2.3", "pycrypto >= 2.1"],
+    extras_require={"db": ["sqlalchemy"], "daemon": ["python-daemon"]},
     classifiers=[
-        'License :: OSI Approved :: BSD License',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python',
-        'Development Status :: 4 - Beta',
-        'Environment :: Web Environment',
-        'Intended Audience :: Developers',
-        'Intended Audience :: System Administrators',
-        'Topic :: Internet :: WWW/HTTP',
-        'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
-    ]
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Development Status :: 4 - Beta",
+        "Environment :: Web Environment",
+        "Intended Audience :: Developers",
+        "Intended Audience :: System Administrators",
+        "Topic :: Internet :: WWW/HTTP",
+        "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+    ],
 )

@@ -9,25 +9,26 @@ import struct
 
 __all__ = [
     # constants
-    'YHSM_AEAD_File_Marker',
+    "YHSM_AEAD_File_Marker",
     # functions
     # classes
-    'YHSM_AEAD_Cmd',
-    'YHSM_Cmd_AEAD_Generate',
-    'YHSM_Cmd_AEAD_Random_Generate',
-    'YHSM_Cmd_AEAD_Buffer_Generate',
-    'YHSM_Cmd_AEAD_Decrypt_Cmp',
-    'YHSM_GeneratedAEAD',
-    'YHSM_YubiKeySecret',
+    "YHSM_AEAD_Cmd",
+    "YHSM_Cmd_AEAD_Generate",
+    "YHSM_Cmd_AEAD_Random_Generate",
+    "YHSM_Cmd_AEAD_Buffer_Generate",
+    "YHSM_Cmd_AEAD_Decrypt_Cmp",
+    "YHSM_GeneratedAEAD",
+    "YHSM_YubiKeySecret",
 ]
 
 import pyhsm.defines
 import pyhsm.exception
 from pyhsm.cmd import YHSM_Cmd
 
-YHSM_AEAD_File_Marker = 'YubiHSM AEAD\n'
+YHSM_AEAD_File_Marker = "YubiHSM AEAD\n"
 # AEADs generated on Windows using pyhsm <= 1.1.1 will have CRLF instead of LF.
-YHSM_AEAD_CRLF_File_Marker = YHSM_AEAD_File_Marker[:-1] + '\r\n'
+YHSM_AEAD_CRLF_File_Marker = YHSM_AEAD_File_Marker[:-1] + "\r\n"
+
 
 class YHSM_AEAD_Cmd(YHSM_Cmd):
     """
@@ -35,25 +36,25 @@ class YHSM_AEAD_Cmd(YHSM_Cmd):
     YSM_AEAD_GENERATE_RESP.
     """
 
-    nonce = ''
+    nonce = ""
     key_handle = 0
     status = 0
     response = None
 
     def __repr__(self):
         if self.executed:
-            return '<%s instance at %s: nonce=%s, key_handle=0x%x, status=%s>' % (
+            return "<%s instance at %s: nonce=%s, key_handle=0x%x, status=%s>" % (
                 self.__class__.__name__,
                 hex(id(self)),
-                self.nonce.encode('hex'),
+                self.nonce.encode("hex"),
                 self.key_handle,
-                pyhsm.defines.status2str(self.status)
-                )
+                pyhsm.defines.status2str(self.status),
+            )
         else:
-            return '<%s instance at %s (not executed)>' % (
+            return "<%s instance at %s (not executed)>" % (
                 self.__class__.__name__,
-                hex(id(self))
-                )
+                hex(id(self)),
+            )
 
     def parse_result(self, data):
         """
@@ -67,21 +68,23 @@ class YHSM_AEAD_Cmd(YHSM_Cmd):
         #   uint8_t aead[YSM_AEAD_MAX_SIZE];    // AEAD block
         # } YSM_AEAD_GENERATE_RESP;
 
-        nonce, \
-            key_handle, \
-            self.status, \
-            num_bytes = struct.unpack_from("< %is I B B" % (pyhsm.defines.YSM_AEAD_NONCE_SIZE), data, 0)
+        nonce, key_handle, self.status, num_bytes = struct.unpack_from(
+            "< %is I B B" % (pyhsm.defines.YSM_AEAD_NONCE_SIZE), data, 0
+        )
 
-        pyhsm.util.validate_cmd_response_hex('key_handle', key_handle, self.key_handle)
+        pyhsm.util.validate_cmd_response_hex("key_handle", key_handle, self.key_handle)
 
         if self.status == pyhsm.defines.YSM_STATUS_OK:
             pyhsm.util.validate_cmd_response_nonce(nonce, self.nonce)
             offset = pyhsm.defines.YSM_AEAD_NONCE_SIZE + 6
-            aead = data[offset:offset + num_bytes]
+            aead = data[offset : offset + num_bytes]
             self.response = YHSM_GeneratedAEAD(nonce, key_handle, aead)
             return self.response
         else:
-            raise pyhsm.exception.YHSM_CommandFailed(pyhsm.defines.cmd2str(self.command), self.status)
+            raise pyhsm.exception.YHSM_CommandFailed(
+                pyhsm.defines.cmd2str(self.command), self.status
+            )
+
 
 class YHSM_Cmd_AEAD_Generate(YHSM_AEAD_Cmd):
     """
@@ -89,8 +92,9 @@ class YHSM_Cmd_AEAD_Generate(YHSM_AEAD_Cmd):
 
     `data' is either a string, or a YHSM_YubiKeySecret.
     """
+
     def __init__(self, stick, nonce, key_handle, data):
-        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad = True)
+        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad=True)
         self.key_handle = pyhsm.util.input_validate_key_handle(key_handle)
         self.data = pyhsm.util.input_validate_yubikey_secret(data)
         # typedef struct {
@@ -103,16 +107,18 @@ class YHSM_Cmd_AEAD_Generate(YHSM_AEAD_Cmd):
         packed = struct.pack(fmt, nonce, key_handle, len(self.data), self.data)
         YHSM_AEAD_Cmd.__init__(self, stick, pyhsm.defines.YSM_AEAD_GENERATE, packed)
 
+
 class YHSM_Cmd_AEAD_Random_Generate(YHSM_AEAD_Cmd):
     """
     Generate a random AEAD block using the YubiHSM internal TRNG.
 
     To generate a secret for a YubiKey, use public_id as nonce.
     """
+
     def __init__(self, stick, nonce, key_handle, num_bytes):
-        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad = True)
+        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad=True)
         self.key_handle = pyhsm.util.input_validate_key_handle(key_handle)
-        self.num_bytes = pyhsm.util.input_validate_int(num_bytes, 'num_bytes')
+        self.num_bytes = pyhsm.util.input_validate_int(num_bytes, "num_bytes")
         # typedef struct {
         #   uint8_t nonce[YSM_AEAD_NONCE_SIZE]; // Nonce (publicId for Yubikey AEADs)
         #   uint32_t keyHandle;                 // Key handle
@@ -120,7 +126,10 @@ class YHSM_Cmd_AEAD_Random_Generate(YHSM_AEAD_Cmd):
         # } YSM_RANDOM_AEAD_GENERATE_REQ;
         fmt = "< %is I B" % (pyhsm.defines.YSM_AEAD_NONCE_SIZE)
         packed = struct.pack(fmt, nonce, key_handle, num_bytes)
-        YHSM_AEAD_Cmd.__init__(self, stick, pyhsm.defines.YSM_RANDOM_AEAD_GENERATE, packed)
+        YHSM_AEAD_Cmd.__init__(
+            self, stick, pyhsm.defines.YSM_RANDOM_AEAD_GENERATE, packed
+        )
+
 
 class YHSM_Cmd_AEAD_Buffer_Generate(YHSM_AEAD_Cmd):
     """
@@ -136,16 +145,21 @@ class YHSM_Cmd_AEAD_Buffer_Generate(YHSM_AEAD_Cmd):
     YSM_BUFFER_AEAD_GENERATE
     YSM_BUFFER_LOAD if non-random data has been loaded into the internal buffer
     """
+
     def __init__(self, stick, nonce, key_handle):
-        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad = True)
+        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad=True)
         self.key_handle = pyhsm.util.input_validate_key_handle(key_handle)
         # typedef struct {
         #   uint8_t nonce[YSM_AEAD_NONCE_SIZE]; // Nonce (publicId for Yubikey AEADs)
         #   uint32_t keyHandle;                 // Key handle
         # } YSM_BUFFER_AEAD_GENERATE_REQ;
-        packed = struct.pack("< %is I" % (pyhsm.defines.YSM_AEAD_NONCE_SIZE), \
-                                 self.nonce, self.key_handle)
-        YHSM_AEAD_Cmd.__init__(self, stick, pyhsm.defines.YSM_BUFFER_AEAD_GENERATE, packed)
+        packed = struct.pack(
+            "< %is I" % (pyhsm.defines.YSM_AEAD_NONCE_SIZE), self.nonce, self.key_handle
+        )
+        YHSM_AEAD_Cmd.__init__(
+            self, stick, pyhsm.defines.YSM_BUFFER_AEAD_GENERATE, packed
+        )
+
 
 class YHSM_Cmd_AEAD_Decrypt_Cmp(YHSM_Cmd):
     """
@@ -158,13 +172,16 @@ class YHSM_Cmd_AEAD_Decrypt_Cmp(YHSM_Cmd):
     def __init__(self, stick, nonce, key_handle, aead, cleartext):
         aead = pyhsm.util.input_validate_aead(aead)
         expected_ct_len = len(aead) - pyhsm.defines.YSM_AEAD_MAC_SIZE
-        cleartext = pyhsm.util.input_validate_str(cleartext, 'cleartext', exact_len = expected_ct_len)
-        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad = True)
+        cleartext = pyhsm.util.input_validate_str(
+            cleartext, "cleartext", exact_len=expected_ct_len
+        )
+        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad=True)
         self.key_handle = pyhsm.util.input_validate_key_handle(key_handle)
         data = cleartext + aead
         if len(data) > pyhsm.defines.YSM_MAX_PKT_SIZE - 10:
             raise pyhsm.exception.YHSM_InputTooLong(
-                'cleartext+aead', pyhsm.defines.YSM_MAX_PKT_SIZE - 10, len(data))
+                "cleartext+aead", pyhsm.defines.YSM_MAX_PKT_SIZE - 10, len(data)
+            )
         # typedef struct {
         #   uint8_t nonce[YSM_AEAD_NONCE_SIZE]; // Nonce (publicId for Yubikey AEADs)
         #   uint32_t keyHandle;                 // Key handle
@@ -183,17 +200,21 @@ class YHSM_Cmd_AEAD_Decrypt_Cmp(YHSM_Cmd):
         # } YSM_AEAD_DECRYPT_CMP_RESP;
         fmt = "< %is I B" % (pyhsm.defines.YSM_AEAD_NONCE_SIZE)
         nonce, key_handle, self.status = struct.unpack(fmt, data)
-        pyhsm.util.validate_cmd_response_str('nonce', nonce, self.nonce)
-        pyhsm.util.validate_cmd_response_hex('key_handle', key_handle, self.key_handle)
+        pyhsm.util.validate_cmd_response_str("nonce", nonce, self.nonce)
+        pyhsm.util.validate_cmd_response_hex("key_handle", key_handle, self.key_handle)
         if self.status == pyhsm.defines.YSM_STATUS_OK:
             return True
         if self.status == pyhsm.defines.YSM_MISMATCH:
             return False
         else:
-            raise pyhsm.exception.YHSM_CommandFailed(pyhsm.defines.cmd2str(self.command), self.status)
+            raise pyhsm.exception.YHSM_CommandFailed(
+                pyhsm.defines.cmd2str(self.command), self.status
+            )
 
-class YHSM_GeneratedAEAD():
-    """ Small class to represent a YHSM_AEAD_GENERATE_RESP. """
+
+class YHSM_GeneratedAEAD:
+    """Small class to represent a YHSM_AEAD_GENERATE_RESP."""
+
     def __init__(self, nonce, key_handle, aead):
         self.nonce = nonce
         self.key_handle = key_handle
@@ -202,14 +223,14 @@ class YHSM_GeneratedAEAD():
     def __repr__(self):
         nonce_str = "None"
         if self.nonce is not None:
-            nonce_str = self.nonce.encode('hex')
-        return '<%s instance at %s: nonce=%s, key_handle=0x%x, data=%i bytes>' % (
+            nonce_str = self.nonce.encode("hex")
+        return "<%s instance at %s: nonce=%s, key_handle=0x%x, data=%i bytes>" % (
             self.__class__.__name__,
             hex(id(self)),
             nonce_str,
             self.key_handle,
-            len(self.data)
-            )
+            len(self.data),
+        )
 
     def save(self, filename):
         """
@@ -235,31 +256,41 @@ class YHSM_GeneratedAEAD():
         aead_f = open(filename, "rb")
         buf = aead_f.read(1024)
         if buf.startswith(YHSM_AEAD_CRLF_File_Marker):
-            buf = YHSM_AEAD_File_Marker + buf[len(YHSM_AEAD_CRLF_File_Marker):]
+            buf = YHSM_AEAD_File_Marker + buf[len(YHSM_AEAD_CRLF_File_Marker) :]
         if buf.startswith(YHSM_AEAD_File_Marker):
             if buf[len(YHSM_AEAD_File_Marker)] == chr(1):
                 # version 1 format
                 fmt = "< I %is" % (pyhsm.defines.YSM_AEAD_NONCE_SIZE)
-                self.key_handle, self.nonce = struct.unpack_from(fmt, buf, len(YHSM_AEAD_File_Marker) + 1)
-                self.data = buf[len(YHSM_AEAD_File_Marker) + 1 + struct.calcsize(fmt):]
+                self.key_handle, self.nonce = struct.unpack_from(
+                    fmt, buf, len(YHSM_AEAD_File_Marker) + 1
+                )
+                self.data = buf[len(YHSM_AEAD_File_Marker) + 1 + struct.calcsize(fmt) :]
             else:
-                raise pyhsm.exception.YHSM_Error('Unknown AEAD file format')
+                raise pyhsm.exception.YHSM_Error("Unknown AEAD file format")
         else:
             # version 0 format, just AEAD data
-            self.data = buf[:pyhsm.defines.YSM_MAX_KEY_SIZE + pyhsm.defines.YSM_BLOCK_SIZE]
+            self.data = buf[
+                : pyhsm.defines.YSM_MAX_KEY_SIZE + pyhsm.defines.YSM_BLOCK_SIZE
+            ]
         aead_f.close()
 
-class YHSM_YubiKeySecret():
-    """ Small class to represent a YUBIKEY_SECRETS struct. """
+
+class YHSM_YubiKeySecret:
+    """Small class to represent a YUBIKEY_SECRETS struct."""
+
     def __init__(self, key, uid):
-        self.key = pyhsm.util.input_validate_str(key, 'key', exact_len = pyhsm.defines.KEY_SIZE)
-        self.uid = pyhsm.util.input_validate_str(uid, 'uid', max_len = pyhsm.defines.UID_SIZE)
+        self.key = pyhsm.util.input_validate_str(
+            key.encode(), "key", exact_len=pyhsm.defines.KEY_SIZE
+        )
+        self.uid = pyhsm.util.input_validate_str(
+            uid.encode(), "uid", max_len=pyhsm.defines.UID_SIZE
+        )
 
     def pack(self):
-        """ Return key and uid packed for sending in a command to the YubiHSM. """
+        """Return key and uid packed for sending in a command to the YubiHSM."""
         # # 22-bytes Yubikey secrets block
         # typedef struct {
         #   uint8_t key[KEY_SIZE];              // AES key
         #   uint8_t uid[UID_SIZE];              // Unique (secret) ID
         # } YUBIKEY_SECRETS;
-        return self.key + self.uid.ljust(pyhsm.defines.UID_SIZE, chr(0))
+        return self.key + self.uid.ljust(pyhsm.defines.UID_SIZE, chr(0).encode())

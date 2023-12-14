@@ -9,7 +9,7 @@ __all__ = [
     # constants
     # functions
     # classes
-    'YHSM_Stick_Client',
+    "YHSM_Stick_Client",
 ]
 
 import sys
@@ -28,21 +28,21 @@ CMD_LOCK = 4
 CMD_UNLOCK = 5
 
 
-DEVICE_PATTERN = re.compile(r'yhsm://(?P<host>[^:]+)(:(?P<port>\d+))?/?')
+DEVICE_PATTERN = re.compile(r"yhsm://(?P<host>[^:]+)(:(?P<port>\d+))?/?")
 DEFAULT_PORT = 5348
 
 
 def pack_data(data):
-    if isinstance(data, basestring):
-        return data.encode('base64')
+    if isinstance(data, str):
+        return data.encode("base64")
     return data
 
 
 def unpack_data(data):
-    if isinstance(data, basestring):
-        return data.decode('base64')
-    elif isinstance(data, dict) and 'error' in data:
-        return pyhsm.exception.YHSM_Error(data['error'])
+    if isinstance(data, bytes):
+        return data.decode("base64")
+    elif isinstance(data, dict) and "error" in data:
+        return pyhsm.exception.YHSM_Error(data["error"])
     return data
 
 
@@ -57,12 +57,13 @@ def write_sock(sf, cmd, *args):
     sf.flush()
 
 
-class YHSM_Stick_Client():
+class YHSM_Stick_Client:
     """
     The current YHSM is a USB device using serial communication.
 
     This class exposes the basic functions read, write and flush (input).
     """
+
     def __init__(self, device, timeout=1, debug=False):
         """
         Open YHSM device.
@@ -72,19 +73,15 @@ class YHSM_Stick_Client():
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         match = DEVICE_PATTERN.match(device)
-        host = match.group('host')
-        port = match.group('port') or DEFAULT_PORT
+        host = match.group("host")
+        port = match.group("port") or DEFAULT_PORT
         self.socket.connect((host, int(port)))
-        self.socket_file = self.socket.makefile('wb')
+        self.socket_file = self.socket.makefile("wb")
 
         self.num_read_bytes = 0
         self.num_write_bytes = 0
         if self.debug:
-            sys.stderr.write("%s: OPEN %s\n" % (
-                self.__class__.__name__,
-                self.socket
-            ))
-        return None
+            sys.stderr.write("%s: OPEN %s\n" % (self.__class__.__name__, self.socket))
 
     def acquire(self):
         write_sock(self.socket_file, CMD_LOCK)
@@ -101,11 +98,10 @@ class YHSM_Stick_Client():
         if self.debug:
             if not debug_info:
                 debug_info = str(len(data))
-            sys.stderr.write("%s: WRITE %s:\n%s\n" % (
-                self.__class__.__name__,
-                debug_info,
-                pyhsm.util.hexdump(data)
-            ))
+            sys.stderr.write(
+                "%s: WRITE %s:\n%s\n"
+                % (self.__class__.__name__, debug_info, data.hex())
+            )
         write_sock(self.socket_file, CMD_WRITE, data)
         return read_sock(self.socket_file)
 
@@ -116,21 +112,16 @@ class YHSM_Stick_Client():
         if self.debug:
             if not debug_info:
                 debug_info = str(num_bytes)
-            sys.stderr.write("%s: READING %s\n" % (
-                self.__class__.__name__,
-                debug_info
-            ))
+            sys.stderr.write("%s: READING %s\n" % (self.__class__.__name__, debug_info))
         write_sock(self.socket_file, CMD_READ, num_bytes)
         res = read_sock(self.socket_file)
         if isinstance(res, Exception):
             raise res
 
         if self.debug:
-            sys.stderr.write("%s: READ %i:\n%s\n" % (
-                self.__class__.__name__,
-                len(res),
-                pyhsm.util.hexdump(res)
-            ))
+            sys.stderr.write(
+                "%s: READ %i:\n%s\n" % (self.__class__.__name__, len(res), res.hex())
+            )
         self.num_read_bytes += len(res)
         return res
 
@@ -142,12 +133,12 @@ class YHSM_Stick_Client():
         return read_sock(self.socket_file)
 
     def drain(self):
-        """ Drain input. """
+        """Drain input."""
         write_sock(self.socket_file, CMD_DRAIN)
         return read_sock(self.socket_file)
 
     def raw_device(self):
-        """ Get the socket address. Only intended for test code/debugging! """
+        """Get the socket address. Only intended for test code/debugging!"""
         return self.socket
 
     def set_debug(self, new):
@@ -157,19 +148,18 @@ class YHSM_Stick_Client():
         Returns old setting.
         """
         if type(new) is not bool:
-            raise pyhsm.exception.YHSM_WrongInputType(
-                'new', bool, type(new))
+            raise pyhsm.exception.YHSM_WrongInputType("new", bool, type(new))
         old = self.debug
         self.debug = new
         return old
 
     def __repr__(self):
-        return '<%s instance at %s: %s - r:%i w:%i>' % (
+        return "<%s instance at %s: %s - r:%i w:%i>" % (
             self.__class__.__name__,
             hex(id(self)),
             self.device,
             self.num_read_bytes,
-            self.num_write_bytes
+            self.num_write_bytes,
         )
 
     def __del__(self):
@@ -177,10 +167,7 @@ class YHSM_Stick_Client():
         Close device when YHSM instance is destroyed.
         """
         if self.debug:
-            sys.stderr.write("%s: CLOSE %s\n" % (
-                self.__class__.__name__,
-                self.device
-            ))
+            sys.stderr.write("%s: CLOSE %s\n" % (self.__class__.__name__, self.device))
         try:
             self.socket_file.close()
             self.socket.close()

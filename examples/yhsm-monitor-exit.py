@@ -20,10 +20,10 @@ device = "/dev/ttyACM0"
 
 # simplified arguments parsing
 d_argv = dict.fromkeys(sys.argv)
-debug = d_argv.has_key('-v')
-raw = d_argv.has_key('-v')
+debug = d_argv.has_key("-v")
+raw = d_argv.has_key("-v")
 
-if d_argv.has_key('-h'):
+if d_argv.has_key("-h"):
     sys.stderr.write("Syntax: %s [-v] [-R]\n" % (sys.argv[0]))
     sys.stderr.write("\nOptions :\n")
     sys.stderr.write("  -v  verbose\n")
@@ -32,27 +32,27 @@ if d_argv.has_key('-h'):
 
 res = 0
 try:
-    s = pyhsm.base.YHSM(device=device, debug = debug)
+    s = pyhsm.base.YHSM(device=device, debug=debug)
 
     if raw:
         # No initialization
-        s.write('\x7f\xef\xbe\xad\xba\x10\x41\x52\x45')
+        s.write("\x7f\xef\xbe\xad\xba\x10\x41\x52\x45")
     else:
-        print "Version: %s" % s.info()
+        print("Version: %s" % s.info())
         s.monitor_exit()
 
-    print "Exited monitor-mode (maybe)"
+    print("Exited monitor-mode (maybe)")
 
     if raw:
-        print "s.stick == %s" % s.stick
-        print "s.stick.ser == %s" % s.stick.ser
+        print("s.stick == %s" % s.stick)
+        print("s.stick.ser == %s" % s.stick.ser)
 
-        for _ in xrange(3):
+        for _ in range(3):
             s.stick.ser.write("\n")
             line = s.stick.ser.readline()
-            print "%s" % (line)
-except pyhsm.exception.YHSM_Error, e:
-    print "ERROR: %s" % e
+            print("%s" % (line))
+except pyhsm.exception.YHSM_Error as e:
+    print("ERROR: %s" % e)
     res = 1
 
 sys.exit(res)

@@ -11,13 +11,14 @@ __all__ = [
     # constants
     # functions
     # classes
-    'YHSM_Cmd_Buffer_Load',
-    'YHSM_Cmd_Buffer_Random_Load',
+    "YHSM_Cmd_Buffer_Load",
+    "YHSM_Cmd_Buffer_Random_Load",
 ]
 
 import pyhsm.defines
 import pyhsm.exception
 from pyhsm.cmd import YHSM_Cmd
+
 
 class YHSM_Cmd_Buffer_Load(YHSM_Cmd):
     """
@@ -33,10 +34,14 @@ class YHSM_Cmd_Buffer_Load(YHSM_Cmd):
     data_len = 0
     offest = 0
 
-    def __init__(self, stick, data, offset = 0):
-        data = pyhsm.util.input_validate_str(data, 'data', max_len = pyhsm.defines.YSM_DATA_BUF_SIZE)
+    def __init__(self, stick, data, offset=0):
+        data = pyhsm.util.input_validate_str(
+            data, "data", max_len=pyhsm.defines.YSM_DATA_BUF_SIZE
+        )
         self.data_len = len(data)
-        self.offset = pyhsm.util.input_validate_int(offset, 'offset', pyhsm.defines.YSM_DATA_BUF_SIZE - 1)
+        self.offset = pyhsm.util.input_validate_int(
+            offset, "offset", pyhsm.defines.YSM_DATA_BUF_SIZE - 1
+        )
         # typedef struct {
         #   uint8_t offs;                       // Offset in buffer. Zero flushes/resets buffer first
         #   uint8_t numBytes;                   // Number of bytes to load
@@ -58,14 +63,17 @@ class YHSM_Cmd_Buffer_Load(YHSM_Cmd):
         # typedef struct {
         #   uint8_t numBytes;                   // Number of bytes in buffer now
         # } YSM_BUFFER_LOAD_RESP;
-        count = ord(data[0])
+        count = data[0]
         if self.offset == 0:
             # if offset was 0, the buffer was reset and
             # we can verify the length returned
             if count != self.data_len:
-                raise pyhsm.exception.YHSM_Error("Incorrect number of bytes in buffer (got %i, expected %i)" \
-                                               % (self.data_len, count))
+                raise pyhsm.exception.YHSM_Error(
+                    "Incorrect number of bytes in buffer (got %i, expected %i)"
+                    % (self.data_len, count)
+                )
         return count
+
 
 class YHSM_Cmd_Buffer_Random_Load(YHSM_Cmd):
     """
@@ -74,7 +82,8 @@ class YHSM_Cmd_Buffer_Random_Load(YHSM_Cmd):
     Generated secret is stored in YubiHSM's internal memory and is
     retreived using YHSM_Cmd_Blob_Generate.
     """
-    def __init__(self, stick, num_bytes, offset = 0):
+
+    def __init__(self, stick, num_bytes, offset=0):
         self.offset = offset
         self.num_bytes = num_bytes
         # typedef struct {
@@ -86,7 +95,7 @@ class YHSM_Cmd_Buffer_Random_Load(YHSM_Cmd):
         YHSM_Cmd.__init__(self, stick, pyhsm.defines.YSM_BUFFER_RANDOM_LOAD, packed)
 
     def parse_result(self, data):
-        """ Return True if the public_id in the response matches the one in the request. """
+        """Return True if the public_id in the response matches the one in the request."""
         # typedef struct {
         #   uint8_t numBytes;                   // Number of bytes in buffer now
         # } YSM_BUFFER_LOAD_RESP;
@@ -95,6 +104,8 @@ class YHSM_Cmd_Buffer_Random_Load(YHSM_Cmd):
             # if offset was 0, the buffer was reset and
             # we can verify the length returned
             if count != self.num_bytes:
-                raise pyhsm.exception.YHSM_Error("Incorrect number of bytes in buffer (got %i, expected %i)" \
-                                               % (self.num_bytes, count))
+                raise pyhsm.exception.YHSM_Error(
+                    "Incorrect number of bytes in buffer (got %i, expected %i)"
+                    % (self.num_bytes, count)
+                )
         return count

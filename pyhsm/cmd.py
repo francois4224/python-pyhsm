@@ -11,15 +11,16 @@ import struct
 __all__ = [
     # constants
     # functions
-    'reset',
+    "reset",
     # classes
-    'YHSM_Cmd',
+    "YHSM_Cmd",
 ]
 
 import pyhsm.exception
 import pyhsm.defines
 
-class YHSM_Cmd():
+
+class YHSM_Cmd:
     """
     Base class for YubiHSM commands.
     """
@@ -27,7 +28,7 @@ class YHSM_Cmd():
     response_status = None
     executed = False
 
-    def __init__(self, stick, command, payload=''):
+    def __init__(self, stick, command: int, payload: bytes = b""):
         """
         The base class for all YSM_ commands.
 
@@ -42,7 +43,6 @@ class YHSM_Cmd():
         self.stick = stick
         self.command = command
         self.payload = payload
-        return None
 
     def execute(self, read_response=True):
         """
@@ -59,16 +59,19 @@ class YHSM_Cmd():
         # } YSM_PKT;
         if self.command != pyhsm.defines.YSM_NULL:
             # YSM_NULL is the exception to the rule - it should NOT be prefixed with YSM_PKT.bcnt
-            cmd_buf = struct.pack('BB', len(self.payload) + 1, self.command)
+            cmd_buf = struct.pack("BB", len(self.payload) + 1, self.command)
         else:
-            cmd_buf = chr(self.command)
+            cmd_buf = chr(self.command).encode()
         cmd_buf += self.payload
         debug_info = None
         unlock = self.stick.acquire()
         try:
             if self.stick.debug:
-                debug_info = "%s (payload %i/0x%x)" % (pyhsm.defines.cmd2str(self.command), \
-                                                        len(self.payload), len(self.payload))
+                debug_info = "%s (payload %i/0x%x)" % (
+                    pyhsm.defines.cmd2str(self.command),
+                    len(self.payload),
+                    len(self.payload),
+                )
             self.stick.write(cmd_buf, debug_info)
             if not read_response:
                 return None
@@ -93,16 +96,18 @@ class YHSM_Cmd():
         # } YSM_PKT;
 
         # read YSM_PKT.bcnt and YSM_PKT.cmd
-        res = self.stick.read(2, 'response length + response status')
+        res = self.stick.read(2, "response length + response status")
         if len(res) != 2:
             self._handle_invalid_read_response(res, 2)
-        response_len, response_status = struct.unpack('BB', res)
-        response_len -= 1 # the status byte has been read already
+        response_len, response_status = struct.unpack("BB", res)
+        response_len -= 1  # the status byte has been read already
         debug_info = None
         if response_status & pyhsm.defines.YSM_RESPONSE:
-            debug_info = "%s response (%i/0x%x bytes)" \
-                % (pyhsm.defines.cmd2str(response_status - pyhsm.defines.YSM_RESPONSE), \
-                       response_len, response_len)
+            debug_info = "%s response (%i/0x%x bytes)" % (
+                pyhsm.defines.cmd2str(response_status - pyhsm.defines.YSM_RESPONSE),
+                response_len,
+                response_len,
+            )
         # read YSM_PKT.payload
         res = self.stick.read(response_len, debug_info)
         if res:
@@ -112,9 +117,9 @@ class YHSM_Cmd():
                 return self.parse_result(res)
             else:
                 reset(self.stick)
-                raise pyhsm.exception.YHSM_Error('YubiHSM responded to wrong command')
+                raise pyhsm.exception.YHSM_Error("YubiHSM responded to wrong command")
         else:
-            raise pyhsm.exception.YHSM_Error('YubiHSM did not respond')
+            raise pyhsm.exception.YHSM_Error("YubiHSM did not respond")
 
     def _handle_invalid_read_response(self, res, expected_len):
         """
@@ -126,17 +131,21 @@ class YHSM_Cmd():
         """
         if not res:
             reset(self.stick)
-            raise pyhsm.exception.YHSM_Error('YubiHSM did not respond to command %s' \
-                                                 % (pyhsm.defines.cmd2str(self.command)) )
+            raise pyhsm.exception.YHSM_Error(
+                "YubiHSM did not respond to command %s"
+                % (pyhsm.defines.cmd2str(self.command))
+            )
         # try to check if it is a YubiHSM in configuration mode
-        self.stick.write('\r\r\r', '(mode test)')
-        res2 = self.stick.read(50) # expect a timeout
-        lines = res2.split('\n')
+        self.stick.write("\r\r\r", "(mode test)")
+        res2 = self.stick.read(50)  # expect a timeout
+        lines = res2.split("\n")
         for this in lines:
-            if re.match('^(NO_CFG|WSAPI|HSM).*> .*', this):
-                raise pyhsm.exception.YHSM_Error('YubiHSM is in configuration mode')
-        raise pyhsm.exception.YHSM_Error('Unknown response from serial device %s : "%s"' \
-                                             % (self.stick.device, res.encode('hex')))
+            if re.match("^(NO_CFG|WSAPI|HSM).*> .*", this):
+                raise pyhsm.exception.YHSM_Error("YubiHSM is in configuration mode")
+        raise pyhsm.exception.YHSM_Error(
+            'Unknown response from serial device %s : "%s"'
+            % (self.stick.device, res.encode("hex"))
+        )
 
     def parse_result(self, data):
         """
@@ -146,12 +155,15 @@ class YHSM_Cmd():
         """
         return data
 
+
 def reset(stick):
     """
     Send a bunch of zero-bytes to the YubiHSM, and flush the input buffer.
     """
-    nulls = (pyhsm.defines.YSM_MAX_PKT_SIZE - 1) * '\x00'
-    res = YHSM_Cmd(stick, pyhsm.defines.YSM_NULL, payload = nulls).execute(read_response = False)
+    nulls = (pyhsm.defines.YSM_MAX_PKT_SIZE - 1) * b"\0"
+    res = YHSM_Cmd(stick, pyhsm.defines.YSM_NULL, payload=nulls).execute(
+        read_response=False
+    )
     unlock = stick.acquire()
     try:
         stick.drain()

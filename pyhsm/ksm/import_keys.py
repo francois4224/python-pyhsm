@@ -32,6 +32,7 @@ import argparse
 import pyhsm
 import pyhsm.yubikey
 from pyhsm.soft_hsm import SoftYHSM
+from pyhsm.tools.generate_keys import output_filename, shorten_aead
 
 default_device = "/dev/ttyACM0"
 default_dir = "/var/cache/yubikey-ksm/aeads"
@@ -44,63 +45,81 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(
         description="Import existing secrets to YubiHSM eco system",
-        add_help=True, formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
-    parser.add_argument('-D', '--device',
-                        dest='device',
-                        default=default_device,
-                        required=False,
-                        help='YubiHSM device',
-                        )
-    parser.add_argument('-O', '--output-dir', '--aead-dir',
-                        dest='output_dir',
-                        default=default_dir,
-                        required=False,
-                        help='Output directory (AEAD base dir)',
-                        metavar='DIR',
-                        )
-    parser.add_argument('-v', '--verbose',
-                        dest='verbose',
-                        action='store_true', default=False,
-                        help='Enable verbose operation',
-                        )
-    parser.add_argument('--debug',
-                        dest='debug',
-                        action='store_true', default=False,
-                        help='Enable debug operation',
-                        )
-    parser.add_argument('--public-id-chars',
-                        dest='public_id_chars',
-                        type=int, default=default_public_id_chars,
-                        required=False,
-                        help='Number of chars in generated public ids',
-                        metavar='NUM',
-                        )
+        add_help=True,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        '--key-handles',
-        dest='key_handles',
-        nargs='+',
+        "-D",
+        "--device",
+        dest="device",
+        default=default_device,
+        required=False,
+        help="YubiHSM device",
+    )
+    parser.add_argument(
+        "-O",
+        "--output-dir",
+        "--aead-dir",
+        dest="output_dir",
+        default=default_dir,
+        required=False,
+        help="Output directory (AEAD base dir)",
+        metavar="DIR",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        dest="verbose",
+        action="store_true",
+        default=False,
+        help="Enable verbose operation",
+    )
+    parser.add_argument(
+        "--debug",
+        dest="debug",
+        action="store_true",
+        default=False,
+        help="Enable debug operation",
+    )
+    parser.add_argument(
+        "--public-id-chars",
+        dest="public_id_chars",
+        type=int,
+        default=default_public_id_chars,
+        required=False,
+        help="Number of chars in generated public ids",
+        metavar="NUM",
+    )
+    parser.add_argument(
+        "--key-handles",
+        dest="key_handles",
+        nargs="+",
         required=True,
-        help='Key handle(s) to encrypt the imported secrets with',
-        metavar='HANDLE',
-     )
-    parser.add_argument('--internal-db',
-                        dest='internal_db',
-                        action='store_true', default=False,
-                        help='Store key in YubiHSM internal database',
-                        )
+        help="Key handle(s) to encrypt the imported secrets with",
+        metavar="HANDLE",
+    )
     parser.add_argument(
-        '--aes-key',
-        dest='aes_key',
+        "--internal-db",
+        dest="internal_db",
+        action="store_true",
+        default=False,
+        help="Store key in YubiHSM internal database",
+    )
+    parser.add_argument(
+        "--aes-key",
+        dest="aes_key",
         required=False,
         default=None,
-        help='AES key to use when generating AEADs (no YubiHSM)',
-        metavar='HEXSTR',
-     )
-    parser.add_argument('--random-nonce',
-                        dest='random_nonce',
-                        action='store_true', default=False,
-                        help='Let the HSM generate random nonce',
-                        )
+        help="AES key to use when generating AEADs (no YubiHSM)",
+        metavar="HEXSTR",
+    )
+    parser.add_argument(
+        "--random-nonce",
+        dest="random_nonce",
+        action="store_true",
+        default=False,
+        help="Let the HSM generate random nonce",
+    )
 
     args = parser.parse_args()
     if args.internal_db:
@@ -115,13 +134,11 @@ def parse_args():
 
 def args_fixup(args):
     if not args.internal_db and not os.path.isdir(args.output_dir):
-        sys.stderr.write(
-            "Output directory '%s' does not exist.\n" %
-            (args.output_dir))
+        sys.stderr.write("Output directory '%s' does not exist.\n" % (args.output_dir))
         sys.exit(1)
 
     if args.aes_key:
-        args.aes_key = args.aes_key.decode('hex')
+        args.aes_key = args.aes_key.decode("hex")
     keyhandles_fixup(args)
 
 
@@ -146,86 +163,95 @@ def import_keys(hsm, args):
     res = True
 
     # ykksm 1
-    #123456,ftftftcccc,534543524554,fcacd309a20ce1809c2db257f0e8d6ea,000000000000,,,
+    # 123456,ftftftcccc,534543524554,fcacd309a20ce1809c2db257f0e8d6ea,000000000000,,,
 
     for line in sys.stdin:
-        if line[0] == '#':
+        if line[0] == "#":
             continue
 
-        l = line.split(',')
+        l = line.split(",")
         modhex_id = l[1]
-        uid = l[2].decode('hex')
-        key = l[3].decode('hex')
+        uid = l[2].decode("hex")
+        key = l[3].decode("hex")
 
         if modhex_id and uid and key:
             public_id = pyhsm.yubikey.modhex_decode(modhex_id)
-            padded_id = modhex_id.rjust(args.public_id_chars, 'c')
+            padded_id = modhex_id.rjust(args.public_id_chars, "c")
 
         if int(public_id, 16) == 0:
-            print "WARNING: Skipping import of key with public ID: %s" % (padded_id)
-            print "This public ID is unsupported by the YubiHSM.\n"
+            print("WARNING: Skipping import of key with public ID: %s" % (padded_id))
+            print("This public ID is unsupported by the YubiHSM.\n")
             continue
 
         if args.verbose:
-            print "  %s" % (padded_id)
+            print("  %s" % (padded_id))
 
         secret = pyhsm.aead_cmd.YHSM_YubiKeySecret(key, uid)
         hsm.load_secret(secret)
 
         for kh in args.key_handles.keys():
-            if(args.random_nonce):
+            if args.random_nonce:
                 nonce = ""
             else:
-                nonce = public_id.decode('hex')
+                nonce = public_id.decode("hex")
             aead = hsm.generate_aead(nonce, kh)
 
             if args.internal_db:
-                if not store_in_internal_db(
-                        args, hsm, modhex_id, public_id, kh, aead):
+                if not store_in_internal_db(args, hsm, modhex_id, public_id, kh, aead):
                     res = False
                 continue
 
-            filename = output_filename(
-                args.output_dir, args.key_handles[kh], padded_id)
+            filename = output_filename(args.output_dir, args.key_handles[kh], padded_id)
 
             if args.verbose:
-                print "    %4s, %i bytes (%s) -> %s" % \
-                    (args.key_handles[kh], len(aead.data), shorten_aead(aead), filename)
+                print(
+                    "    %4s, %i bytes (%s) -> %s"
+                    % (
+                        args.key_handles[kh],
+                        len(aead.data),
+                        shorten_aead(aead),
+                        filename,
+                    )
+                )
 
             aead.save(filename)
 
         if args.verbose:
-            print ""
+            print("")
 
     if res:
-        print "\nDone\n"
+        print("\nDone\n")
     else:
-        print "\nDone (one or more entries rejected)"
+        print("\nDone (one or more entries rejected)")
     return res
 
 
 def store_in_internal_db(args, hsm, modhex_id, public_id, kh, aead):
-    """ Store record (AEAD) in YubiHSM internal DB """
+    """Store record (AEAD) in YubiHSM internal DB"""
     if args.verbose:
-        print "    %i bytes (%s) -> internal db..." % \
-            (len(aead.data), shorten_aead(aead)),
+        print(
+            "    %i bytes (%s) -> internal db..." % (len(aead.data), shorten_aead(aead))
+        )
     try:
-        hsm.db_store_yubikey(public_id.decode('hex'), kh, aead)
+        hsm.db_store_yubikey(public_id.decode("hex"), kh, aead)
         if args.verbose:
-            print "OK"
+            print("OK")
     except pyhsm.exception.YHSM_CommandFailed as e:
         if args.verbose:
-            print "%s" % (pyhsm.defines.status2str(e.status))
+            print("%s" % (pyhsm.defines.status2str(e.status)))
         else:
-            print "Storing ID %s FAILED: %s" % (modhex_id, pyhsm.defines.status2str(e.status))
+            print(
+                "Storing ID %s FAILED: %s"
+                % (modhex_id, pyhsm.defines.status2str(e.status))
+            )
         return False
     return True
 
 
 def shorten_aead(aead):
-    """ Produce pretty-printable version of long AEAD. """
-    head = aead.data[:4].encode('hex')
-    tail = aead.data[-4:].encode('hex')
+    """Produce pretty-printable version of long AEAD."""
+    head = aead.data[:4].encode("hex")
+    tail = aead.data[-4:].encode("hex")
     return "%s...%s" % (head, tail)
 
 
@@ -249,14 +275,13 @@ def main():
     args_fixup(args)
 
     if sys.stdin.readline() != "# ykksm 1\n":
-        sys.stderr.write(
-            "Did not get '# ykksm 1' header as first line of input.\n")
+        sys.stderr.write("Did not get '# ykksm 1' header as first line of input.\n")
         sys.exit(1)
 
-    print "output dir		: %s" % (args.output_dir)
-    print "key handles		: %s" % (args.key_handles)
-    print "YHSM device		: %s" % (args.device)
-    print ""
+    print("output dir		: %s" % (args.output_dir))
+    print("key handles		: %s" % (args.key_handles))
+    print("YHSM device		: %s" % (args.device))
+    print("")
 
     if args.aes_key:
         keys = {kh: args.aes_key for kh in args.key_handles}
@@ -269,5 +294,5 @@ def main():
     return not import_keys(hsm, args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

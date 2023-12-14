@@ -11,13 +11,14 @@ __all__ = [
     # constants
     # functions
     # classes
-    'YHSM_Cmd_HMAC_SHA1_Write',
-    'YHSM_GeneratedHMACSHA1',
+    "YHSM_Cmd_HMAC_SHA1_Write",
+    "YHSM_GeneratedHMACSHA1",
 ]
 
 import pyhsm.exception
 import pyhsm.defines
 from pyhsm.cmd import YHSM_Cmd
+
 
 class YHSM_Cmd_HMAC_SHA1_Write(YHSM_Cmd):
     """
@@ -32,12 +33,16 @@ class YHSM_Cmd_HMAC_SHA1_Write(YHSM_Cmd):
     status = None
     result = None
 
-    def __init__(self, stick, key_handle, data, flags = None, final = True, to_buffer = False):
-        data = pyhsm.util.input_validate_str(data, 'data', max_len = pyhsm.defines.YSM_MAX_PKT_SIZE - 6)
+    def __init__(
+        self, stick, key_handle, data, flags=None, final=True, to_buffer=False
+    ):
+        data = pyhsm.util.input_validate_str(
+            data, "data", max_len=pyhsm.defines.YSM_MAX_PKT_SIZE - 6
+        )
         self.key_handle = pyhsm.util.input_validate_key_handle(key_handle)
 
         if flags != None:
-            flags = pyhsm.util.input_validate_int(flags, 'flags', max_value=0xff)
+            flags = pyhsm.util.input_validate_int(flags, "flags", max_value=0xFF)
         else:
             flags = pyhsm.defines.YSM_HMAC_SHA1_RESET
             if final:
@@ -50,7 +55,7 @@ class YHSM_Cmd_HMAC_SHA1_Write(YHSM_Cmd):
         packed = _raw_pack(self.key_handle, self.flags, data)
         YHSM_Cmd.__init__(self, stick, pyhsm.defines.YSM_HMAC_SHA1_GENERATE, packed)
 
-    def next(self, data, final = False, to_buffer = False):
+    def next(self, data, final=False, to_buffer=False):
         """
         Add more input to the HMAC SHA1.
         """
@@ -69,18 +74,20 @@ class YHSM_Cmd_HMAC_SHA1_Write(YHSM_Cmd):
         Get the HMAC-SHA1 that has been calculated this far.
         """
         if not self.executed:
-            raise pyhsm.exception.YHSM_Error("HMAC-SHA1 hash not available, before execute().")
+            raise pyhsm.exception.YHSM_Error(
+                "HMAC-SHA1 hash not available, before execute()."
+            )
         return self.result.hash_result
 
     def __repr__(self):
         if self.executed:
-            return '<%s instance at %s: key_handle=0x%x, flags=0x%x, executed=%s>' % (
+            return "<%s instance at %s: key_handle=0x%x, flags=0x%x, executed=%s>" % (
                 self.__class__.__name__,
                 hex(id(self)),
                 self.key_handle,
                 self.flags,
                 self.executed,
-                )
+            )
 
     def parse_result(self, data):
         # typedef struct {
@@ -89,23 +96,24 @@ class YHSM_Cmd_HMAC_SHA1_Write(YHSM_Cmd):
         #   uint8_t numBytes;                   // Number of bytes in hash output
         #   uint8_t hash[YSM_SHA1_HASH_SIZE];       // Hash output (if applicable)
         # } YHSM_HMAC_SHA1_GENERATE_RESP;
-        key_handle, \
-             self.status, \
-             num_bytes = struct.unpack_from('<IBB', data, 0)
+        key_handle, self.status, num_bytes = struct.unpack_from("<IBB", data, 0)
 
-        pyhsm.util.validate_cmd_response_hex('key_handle', key_handle, self.key_handle)
+        pyhsm.util.validate_cmd_response_hex("key_handle", key_handle, self.key_handle)
 
         if self.status == pyhsm.defines.YSM_STATUS_OK:
             # struct.hash is not always of size YSM_SHA1_HASH_SIZE,
             # it is really the size of numBytes
             if num_bytes:
-                sha1 = data[6:6 + num_bytes]
+                sha1 = data[6 : 6 + num_bytes]
             else:
-                sha1 = '\x00' * pyhsm.defines.YSM_SHA1_HASH_SIZE
+                sha1 = "\x00" * pyhsm.defines.YSM_SHA1_HASH_SIZE
             self.result = YHSM_GeneratedHMACSHA1(key_handle, sha1, self.final)
             return self
         else:
-            raise pyhsm.exception.YHSM_CommandFailed('YHSM_HMAC_SHA1_GENERATE', self.status)
+            raise pyhsm.exception.YHSM_CommandFailed(
+                "YHSM_HMAC_SHA1_GENERATE", self.status
+            )
+
 
 def _raw_pack(key_handle, flags, data):
     """
@@ -119,20 +127,25 @@ def _raw_pack(key_handle, flags, data):
     #   uint8_t numBytes;                   // Number of bytes in data packet
     #   uint8_t data[YHSM_MAX_PKT_SIZE - 6]; // Data to be written
     # } YHSM_HMAC_SHA1_GENERATE_REQ;
-    return struct.pack('<IBB', key_handle, flags, len(data)) + data
+    return struct.pack("<IBB", key_handle, flags, len(data)) + data
 
-class YHSM_GeneratedHMACSHA1():
-    """ Small class to represent a YHSM_HMAC_SHA1_GENERATE_RESP. """
+
+class YHSM_GeneratedHMACSHA1:
+    """Small class to represent a YHSM_HMAC_SHA1_GENERATE_RESP."""
+
     def __init__(self, key_handle, sha1, final):
         self.key_handle = key_handle
         self.hash_result = sha1
         self.final = final
 
     def __repr__(self):
-        return '<%s instance at %s: key_handle=0x%x, trunc(hash_result)=%s, final=%s>' % (
-            self.__class__.__name__,
-            hex(id(self)),
-            self.key_handle,
-            self.hash_result[:4].encode('hex'),
-            self.final,
+        return (
+            "<%s instance at %s: key_handle=0x%x, trunc(hash_result)=%s, final=%s>"
+            % (
+                self.__class__.__name__,
+                hex(id(self)),
+                self.key_handle,
+                self.hash_result[:4].encode("hex"),
+                self.final,
             )
+        )

@@ -9,11 +9,12 @@ __all__ = [
     # constants
     # functions
     # classes
-    'YHSM_Version'
+    "YHSM_Version"
 ]
 
-class YHSM_Version():
-    """ Keeps the YubiHSM's version number and can tell what capabilities it has.
+
+class YHSM_Version:
+    """Keeps the YubiHSM's version number and can tell what capabilities it has.
 
     @ivar sysinfo: Sysinfo when YubiHSM was initialized.
     @type sysinfo: L{YHSM_Cmd_System_Info}
@@ -25,7 +26,11 @@ class YHSM_Version():
         @type sysinfo: L{YHSM_Cmd_System_Info}
         """
         self.sysinfo = sysinfo
-        self.ver = (sysinfo.version_major, sysinfo.version_minor, sysinfo.version_build,)
+        self.ver = (
+            sysinfo.version_major,
+            sysinfo.version_minor,
+            sysinfo.version_build,
+        )
 
     def have_key_storage_unlock(self):
         """
@@ -34,10 +39,13 @@ class YHSM_Version():
         The basic concept of a passphrase to unlock the YubiHSM is now provided
         with the more secure YSM_KEY_STORE_DECRYPT.
         """
-        return self.ver < (1, 0,)
+        return self.ver < (
+            1,
+            0,
+        )
 
     def have_key_store_decrypt(self):
-        """ YSM_KEY_STORE_DECRYPT was introduced in 1.0, replacing YSM_KEY_STORAGE_UNLOCK. """
+        """YSM_KEY_STORE_DECRYPT was introduced in 1.0, replacing YSM_KEY_STORAGE_UNLOCK."""
         return self.ver >= (1, 0, 0)
 
     def have_unlock(self):
@@ -67,7 +75,11 @@ class YHSM_Version():
         """
         This is a key handle permission flag that was introduced in 0.9.9.
         """
-        return self.ver >= (0, 9, 9,)
+        return self.ver >= (
+            0,
+            9,
+            9,
+        )
 
     def have_YSM_DB_YUBIKEY_AEAD_STORE2(self):
         """

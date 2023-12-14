@@ -11,16 +11,16 @@ __all__ = [
     # constants
     # functions
     # classes
-    'YHSM_Cmd_Echo',
-    'YHSM_Cmd_System_Info',
-    'YHSM_Cmd_Random',
-    'YHSM_Cmd_Random_Reseed',
-    'YHSM_Cmd_Temp_Key_Load',
-    'YHSM_Cmd_Nonce_Get',
-    'YHSM_Cmd_Key_Storage_Unlock',
-    'YHSM_Cmd_Key_Store_Decrypt',
-    'YHSM_Cmd_HSM_Unlock',
-    'YHSM_NonceResponse',
+    "YHSM_Cmd_Echo",
+    "YHSM_Cmd_System_Info",
+    "YHSM_Cmd_Random",
+    "YHSM_Cmd_Random_Reseed",
+    "YHSM_Cmd_Temp_Key_Load",
+    "YHSM_Cmd_Nonce_Get",
+    "YHSM_Cmd_Key_Storage_Unlock",
+    "YHSM_Cmd_Key_Store_Decrypt",
+    "YHSM_Cmd_HSM_Unlock",
+    "YHSM_NonceResponse",
 ]
 
 import pyhsm.defines
@@ -28,17 +28,21 @@ import pyhsm.exception
 import pyhsm.aead_cmd
 from pyhsm.cmd import YHSM_Cmd
 
+
 class YHSM_Cmd_Echo(YHSM_Cmd):
     """
     Send something to the stick, and expect to get it echoed back.
     """
-    def __init__(self, stick, payload=''):
-        payload = pyhsm.util.input_validate_str(payload, 'payload', max_len = pyhsm.defines.YSM_MAX_PKT_SIZE - 1)
+
+    def __init__(self, stick, payload: bytes = b""):
+        payload = pyhsm.util.input_validate_str(
+            payload, "payload", max_len=pyhsm.defines.YSM_MAX_PKT_SIZE - 1
+        )
         # typedef struct {
         #   uint8_t numBytes;                   // Number of bytes in data field
         #   uint8_t data[YSM_MAX_PKT_SIZE - 1]; // Data
         # } YSM_ECHO_REQ;
-        packed = chr(len(payload)) + payload
+        packed = chr(len(payload)).encode() + payload
         YHSM_Cmd.__init__(self, stick, pyhsm.defines.YSM_ECHO, packed)
 
     def parse_result(self, data):
@@ -72,18 +76,18 @@ class YHSM_Cmd_System_Info(YHSM_Cmd):
 
     def __repr__(self):
         if self.executed:
-            return '<%s instance at %s: ver=%s, proto=%s, sysid=0x%s>' % (
+            return "<%s instance at %s: ver=%s, proto=%s, sysid=0x%s>" % (
                 self.__class__.__name__,
                 hex(id(self)),
                 (self.version_major, self.version_minor, self.version_build),
                 self.protocol_ver,
-                self.system_uid.encode('hex')
-                )
+                self.system_uid.hex(),
+            )
         else:
-            return '<%s instance at %s (not executed)>' % (
+            return "<%s instance at %s (not executed)>" % (
                 self.__class__.__name__,
-                hex(id(self))
-                )
+                hex(id(self)),
+            )
 
     def parse_result(self, data):
         # #define SYSTEM_ID_SIZE          12
@@ -94,11 +98,13 @@ class YHSM_Cmd_System_Info(YHSM_Cmd):
         #   uint8_t protocolVersion;            // Protocol version #
         #   uint8_t systemUid[SYSTEM_ID_SIZE];  // System unique identifier
         # } YHSM_SYSTEM_INFO_RESP;
-        self.version_major, \
-            self.version_minor, \
-            self.version_build, \
-            self.protocol_ver, \
-            self.system_uid = struct.unpack('BBBB12s', data)
+        (
+            self.version_major,
+            self.version_minor,
+            self.version_build,
+            self.protocol_ver,
+            self.system_uid,
+        ) = struct.unpack("BBBB12s", data)
         return self
 
 
@@ -106,8 +112,11 @@ class YHSM_Cmd_Random(YHSM_Cmd):
     """
     Ask stick to generate a number of random bytes.
     """
+
     def __init__(self, stick, num_bytes):
-        self.num_bytes = pyhsm.util.input_validate_int(num_bytes, 'num_bytes', pyhsm.defines.YSM_MAX_PKT_SIZE - 1)
+        self.num_bytes = pyhsm.util.input_validate_int(
+            num_bytes, "num_bytes", pyhsm.defines.YSM_MAX_PKT_SIZE - 1
+        )
         # typedef struct {
         #   uint8_t numBytes;                   // Number of bytes to generate
         # } YSM_RANDOM_GENERATE_REQ;
@@ -119,8 +128,10 @@ class YHSM_Cmd_Random(YHSM_Cmd):
         #   uint8_t numBytes;                   // Number of bytes generated
         #   uint8_t rnd[YSM_MAX_PKT_SIZE - 1];  // Random data
         # } YHSM_RANDOM_GENERATE_RESP;
-        num_bytes = pyhsm.util.validate_cmd_response_int('num_bytes', ord(data[0]), self.num_bytes)
-        return data[1:1 + num_bytes]
+        num_bytes = pyhsm.util.validate_cmd_response_int(
+            "num_bytes", ord(data[0]), self.num_bytes
+        )
+        return data[1 : 1 + num_bytes]
 
 
 class YHSM_Cmd_Random_Reseed(YHSM_Cmd):
@@ -131,7 +142,9 @@ class YHSM_Cmd_Random_Reseed(YHSM_Cmd):
     status = None
 
     def __init__(self, stick, seed):
-        seed = pyhsm.util.input_validate_str(seed, 'seed', exact_len = pyhsm.defines.YSM_CTR_DRBG_SEED_SIZE)
+        seed = pyhsm.util.input_validate_str(
+            seed, "seed", exact_len=pyhsm.defines.YSM_CTR_DRBG_SEED_SIZE
+        )
         # #define YSM_CTR_DRBG_SEED_SIZE      32
         # typedef struct {
         #   uint8_t seed[YSM_CTR_DRBG_SEED_SIZE];   // New seed
@@ -145,11 +158,13 @@ class YHSM_Cmd_Random_Reseed(YHSM_Cmd):
         #   YSM_STATUS status;                  // Status
         # } YSM_RANDOM_RESEED_RESP;
         fmt = "B"
-        self.status, = struct.unpack(fmt, data)
+        (self.status,) = struct.unpack(fmt, data)
         if self.status == pyhsm.defines.YSM_STATUS_OK:
             return True
         else:
-            raise pyhsm.exception.YHSM_CommandFailed(pyhsm.defines.cmd2str(self.command), self.status)
+            raise pyhsm.exception.YHSM_CommandFailed(
+                pyhsm.defines.cmd2str(self.command), self.status
+            )
 
 
 class YHSM_Cmd_Temp_Key_Load(YHSM_Cmd):
@@ -162,11 +177,15 @@ class YHSM_Cmd_Temp_Key_Load(YHSM_Cmd):
     status = None
 
     def __init__(self, stick, nonce, key_handle, aead):
-        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad = True)
+        self.nonce = pyhsm.util.input_validate_nonce(nonce, pad=True)
         self.key_handle = pyhsm.util.input_validate_key_handle(key_handle)
         flags_size = struct.calcsize("<I")
-        max_aead_len = pyhsm.defines.YSM_MAX_KEY_SIZE + flags_size + pyhsm.defines.YSM_AEAD_MAC_SIZE
-        aead = pyhsm.util.input_validate_aead(aead, max_aead_len = max_aead_len)
+        max_aead_len = (
+            pyhsm.defines.YSM_MAX_KEY_SIZE
+            + flags_size
+            + pyhsm.defines.YSM_AEAD_MAC_SIZE
+        )
+        aead = pyhsm.util.input_validate_aead(aead, max_aead_len=max_aead_len)
         # typedef struct {
         #   uint8_t nonce[YSM_AEAD_NONCE_SIZE]; // Nonce
         #   uint32_t keyHandle;                 // Key handle to unlock AEAD
@@ -196,13 +215,15 @@ class YHSM_Cmd_Temp_Key_Load(YHSM_Cmd):
         nonce, key_handle, self.status = struct.unpack(fmt, data)
 
         # Validate data in response against values we used in request
-        pyhsm.util.validate_cmd_response_str('nonce', nonce, self.nonce)
-        pyhsm.util.validate_cmd_response_hex('key_handle', key_handle, self.key_handle)
+        pyhsm.util.validate_cmd_response_str("nonce", nonce, self.nonce)
+        pyhsm.util.validate_cmd_response_hex("key_handle", key_handle, self.key_handle)
 
         if self.status == pyhsm.defines.YSM_STATUS_OK:
             return True
         else:
-            raise pyhsm.exception.YHSM_CommandFailed(pyhsm.defines.cmd2str(self.command), self.status)
+            raise pyhsm.exception.YHSM_CommandFailed(
+                pyhsm.defines.cmd2str(self.command), self.status
+            )
 
 
 class YHSM_Cmd_Nonce_Get(YHSM_Cmd):
@@ -216,7 +237,7 @@ class YHSM_Cmd_Nonce_Get(YHSM_Cmd):
     response = None
 
     def __init__(self, stick, post_increment):
-        pyhsm.util.input_validate_int(post_increment, 'post_increment')
+        pyhsm.util.input_validate_int(post_increment, "post_increment")
         # typedef struct {
         #   uint16_t postIncrement;                 // Size of increment to next nonce
         # } YSM_NONCE_GET_REQ;
@@ -234,7 +255,10 @@ class YHSM_Cmd_Nonce_Get(YHSM_Cmd):
             self.response = YHSM_NonceResponse(nonce)
             return self.response
         else:
-            raise pyhsm.exception.YHSM_CommandFailed(pyhsm.defines.cmd2str(self.command), self.status)
+            raise pyhsm.exception.YHSM_CommandFailed(
+                pyhsm.defines.cmd2str(self.command), self.status
+            )
+
 
 class YHSM_Cmd_Key_Storage_Unlock(YHSM_Cmd):
     """
@@ -251,8 +275,10 @@ class YHSM_Cmd_Key_Storage_Unlock(YHSM_Cmd):
 
     status = None
 
-    def __init__(self, stick, password=''):
-        payload = pyhsm.util.input_validate_str(password, 'password', max_len = pyhsm.defines.YSM_BLOCK_SIZE)
+    def __init__(self, stick, password=""):
+        payload = pyhsm.util.input_validate_str(
+            password, "password", max_len=pyhsm.defines.YSM_BLOCK_SIZE
+        )
         # typedef struct {
         #   uint8_t password[YSM_BLOCK_SIZE];  // Unlock password
         # } YSM_KEY_STORAGE_UNLOCK_REQ;
@@ -272,12 +298,15 @@ class YHSM_Cmd_Key_Storage_Unlock(YHSM_Cmd):
         #   YSM_STATUS status;                  // Unlock status
         # } YSM_KEY_STORAGE_UNLOCK_RESP;
         fmt = "B"
-        self.status, = struct.unpack(fmt, data)
+        (self.status,) = struct.unpack(fmt, data)
 
         if self.status == pyhsm.defines.YSM_STATUS_OK:
             return True
         else:
-            raise pyhsm.exception.YHSM_CommandFailed(pyhsm.defines.cmd2str(self.command), self.status)
+            raise pyhsm.exception.YHSM_CommandFailed(
+                pyhsm.defines.cmd2str(self.command), self.status
+            )
+
 
 class YHSM_Cmd_Key_Store_Decrypt(YHSM_Cmd):
     """
@@ -292,12 +321,14 @@ class YHSM_Cmd_Key_Store_Decrypt(YHSM_Cmd):
 
     status = None
 
-    def __init__(self, stick, key=''):
-        payload = pyhsm.util.input_validate_str(key, 'key', max_len = pyhsm.defines.YSM_MAX_KEY_SIZE)
+    def __init__(self, stick, key=""):
+        payload = pyhsm.util.input_validate_str(
+            key, "key", max_len=pyhsm.defines.YSM_MAX_KEY_SIZE
+        )
         # typedef struct {
         #   uint8_t key[YSM_MAX_KEY_SIZE];      // Key store decryption key
         # } YSM_KEY_STORE_DECRYPT_REQ;
-        packed = payload.ljust(pyhsm.defines.YSM_MAX_KEY_SIZE, chr(0x0))
+        packed = payload.ljust(pyhsm.defines.YSM_MAX_KEY_SIZE, chr(0x0).encode())
         YHSM_Cmd.__init__(self, stick, pyhsm.defines.YSM_KEY_STORE_DECRYPT, packed)
 
     def parse_result(self, data):
@@ -313,12 +344,15 @@ class YHSM_Cmd_Key_Store_Decrypt(YHSM_Cmd):
         #   YSM_STATUS status;                  // Decrypt status
         # } YSM_KEY_STORE_DECRYPT_RESP;
         fmt = "B"
-        self.status, = struct.unpack(fmt, data)
+        (self.status,) = struct.unpack(fmt, data)
 
         if self.status == pyhsm.defines.YSM_STATUS_OK:
             return True
         else:
-            raise pyhsm.exception.YHSM_CommandFailed(pyhsm.defines.cmd2str(self.command), self.status)
+            raise pyhsm.exception.YHSM_CommandFailed(
+                pyhsm.defines.cmd2str(self.command), self.status
+            )
+
 
 class YHSM_Cmd_HSM_Unlock(YHSM_Cmd):
     """
@@ -334,18 +368,23 @@ class YHSM_Cmd_HSM_Unlock(YHSM_Cmd):
     status = None
 
     def __init__(self, stick, public_id, otp):
-        self.public_id = pyhsm.util.input_validate_nonce(public_id, pad = True)
-        self.otp = pyhsm.util.input_validate_str(otp, 'otp', exact_len = pyhsm.defines.YSM_OTP_SIZE)
+        self.public_id = pyhsm.util.input_validate_nonce(public_id, pad=True)
+        self.otp = pyhsm.util.input_validate_str(
+            otp, "otp", exact_len=pyhsm.defines.YSM_OTP_SIZE
+        )
         # typedef struct {
         #   uint8_t publicId[YSM_PUBLIC_ID_SIZE]; // Public id
         #   uint8_t otp[YSM_OTP_SIZE];          // OTP
         # } YSM_HSM_UNLOCK_REQ;
-        fmt = "< %is %is" % (pyhsm.defines.YSM_AEAD_NONCE_SIZE, \
-                                       pyhsm.defines.YSM_OTP_SIZE, \
-                                 )
-        packed = struct.pack(fmt, self.public_id, \
-                                 self.otp,
-                             )
+        fmt = "< %is %is" % (
+            pyhsm.defines.YSM_AEAD_NONCE_SIZE,
+            pyhsm.defines.YSM_OTP_SIZE,
+        )
+        packed = struct.pack(
+            fmt,
+            self.public_id,
+            self.otp,
+        )
         YHSM_Cmd.__init__(self, stick, pyhsm.defines.YSM_HSM_UNLOCK, packed)
 
     def parse_result(self, data):
@@ -361,15 +400,18 @@ class YHSM_Cmd_HSM_Unlock(YHSM_Cmd):
         #   YSM_STATUS status;                  // Unlock status
         # } YSM_HSM_UNLOCK_RESP;
         fmt = "B"
-        self.status, = struct.unpack(fmt, data)
+        (self.status,) = struct.unpack(fmt, data)
 
         if self.status == pyhsm.defines.YSM_STATUS_OK:
             return True
         else:
-            raise pyhsm.exception.YHSM_CommandFailed(pyhsm.defines.cmd2str(self.command), self.status)
+            raise pyhsm.exception.YHSM_CommandFailed(
+                pyhsm.defines.cmd2str(self.command), self.status
+            )
 
-class YHSM_NonceResponse():
-    """ Small class to hold response of Nonce_Get command.
+
+class YHSM_NonceResponse:
+    """Small class to hold response of Nonce_Get command.
 
     @ivar volatile: Volatile part of nonce
     @ivar pu_count: Power-up count -- persistent part of nonce
@@ -381,6 +423,7 @@ class YHSM_NonceResponse():
     @type nonce_int: long
     @type nonce: string
     """
+
     volatile = 0
     pu_count = 0
     nonce_int = 0
@@ -394,10 +437,10 @@ class YHSM_NonceResponse():
         self.nonce = nonce
 
     def __repr__(self):
-        return '<%s instance at %s: nonce=%s, pu_count=%i, volatile=%i>' % (
+        return "<%s instance at %s: nonce=%s, pu_count=%i, volatile=%i>" % (
             self.__class__.__name__,
             hex(id(self)),
-            self.nonce.encode('hex'),
+            self.nonce.encode("hex"),
             self.pu_count,
-            self.volatile
-            )
+            self.volatile,
+        )

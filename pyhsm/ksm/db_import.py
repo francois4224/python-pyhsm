@@ -36,7 +36,12 @@ def insert_query(connection, publicId, aead, keyhandle, aeadobj):
 
     # creates the query object
     try:
-        sql = aeadobj.insert().values(public_id=publicId, keyhandle=aead.key_handle, nonce=aead.nonce, aead=aead.data)
+        sql = aeadobj.insert().values(
+            public_id=publicId,
+            keyhandle=aead.key_handle,
+            nonce=aead.nonce,
+            aead=aead.data,
+        )
         # insert the query
         result = connection.execute(sql)
         return result
@@ -46,10 +51,10 @@ def insert_query(connection, publicId, aead, keyhandle, aeadobj):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Import AEADs into the database')
+    parser = argparse.ArgumentParser(description="Import AEADs into the database")
 
-    parser.add_argument('path', help='filesystem path of where to find AEADs')
-    parser.add_argument('dburl', help='connection URL for the database')
+    parser.add_argument("path", help="filesystem path of where to find AEADs")
+    parser.add_argument("dburl", help="connection URL for the database")
 
     args = parser.parse_args()
 
@@ -63,9 +68,11 @@ def main():
     try:
         engine = sqlalchemy.create_engine(databaseUrl)
 
-        #SQLAlchemy voodoo
+        # SQLAlchemy voodoo
         metadata = sqlalchemy.MetaData()
-        aeadobj = sqlalchemy.Table('aead_table', metadata, autoload=True, autoload_with=engine)
+        aeadobj = sqlalchemy.Table(
+            "aead_table", metadata, autoload=True, autoload_with=engine
+        )
         connection = engine.connect()
     except:
         print("FATAL: Database connect failure")
@@ -73,35 +80,35 @@ def main():
 
     for root, subFolders, files in os.walk(path):
         if files:
-            if not re.match(r'^[cbdefghijklnrtuv]+$', files[0]):
+            if not re.match(r"^[cbdefghijklnrtuv]+$", files[0]):
                 continue
 
-            #build file path
+            # build file path
             filepath = os.path.join(root, files[0])
 
-            #extract the key handle from the path
+            # extract the key handle from the path
             keyhandle = extract_keyhandle(path, filepath)
             kh_int = pyhsm.util.key_handle_to_int(keyhandle)
 
-            #instantiate a new aead object
-            aead = pyhsm.aead_cmd.YHSM_GeneratedAEAD(None, kh_int, '')
+            # instantiate a new aead object
+            aead = pyhsm.aead_cmd.YHSM_GeneratedAEAD(None, kh_int, "")
             aead.load(filepath)
 
-            #set the public_id
+            # set the public_id
             public_id = str(files[0])
 
-            #check it is old format aead
+            # check it is old format aead
             if not aead.nonce:
-                #configure values for oldformat
-                aead.nonce = pyhsm.yubikey.modhex_decode(public_id).decode('hex')
+                # configure values for oldformat
+                aead.nonce = pyhsm.yubikey.modhex_decode(public_id).decode("hex")
                 aead.key_handle = key_handle_to_int(keyhandle)
 
             if not insert_query(connection, public_id, aead, keyhandle, aeadobj):
                 print("WARNING: could not insert %s" % public_id)
 
-    #close sqlalchemy
+    # close sqlalchemy
     connection.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

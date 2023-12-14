@@ -41,32 +41,33 @@ Basic usage ::
 See help(pyhsm.base) (L{pyhsm.base.YHSM}) for more information.
 """
 
-__version__ = '1.2.2-dev0'
-__copyright__ = 'Yubico AB'
-__organization__ = 'Yubico'
-__license__ = 'BSD'
-__authors__ = ['Fredrik Thulin', 'Dain Nilsson']
+__version__ = "1.2.2-dev0"
+__copyright__ = "Yubico AB"
+__organization__ = "Yubico"
+__license__ = "BSD"
+__authors__ = ["Fredrik Thulin", "Dain Nilsson"]
 
-__all__ = ["base",
-           "cmd",
-           "defines",
-           "exception",
-           "stick",
-           "util",
-           "version",
-           "yubikey",
-           "soft_hsm",
-           #
-           "aead_cmd",
-           "aes_ecb_cmd",
-           "basic_cmd",
-           "buffer_cmd",
-           "db_cmd",
-           "debug_cmd",
-           "hmac_cmd",
-           "oath_hotp",
-           "oath_totp",
-           "validate_cmd",
-           ]
+__all__ = [
+    "base",
+    "cmd",
+    "defines",
+    "exception",
+    "stick",
+    "util",
+    "version",
+    "yubikey",
+    "soft_hsm",
+    #
+    "aead_cmd",
+    "aes_ecb_cmd",
+    "basic_cmd",
+    "buffer_cmd",
+    "db_cmd",
+    "debug_cmd",
+    "hmac_cmd",
+    "oath_hotp",
+    "oath_totp",
+    "validate_cmd",
+]
 
-from pyhsm.base import YHSM
+from .base import YHSM

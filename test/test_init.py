@@ -20,20 +20,21 @@ import test_yubikey_validate
 import test_misc
 import test_soft_hsm
 
-test_modules = [test_aead,
-                test_aes_ecb,
-                test_basics,
-                test_buffer,
-                test_db,
-                test_hmac,
-                test_oath,
-                test_otp_validate,
-                test_stick,
-                test_util,
-                test_yubikey_validate,
-                test_misc,
-                test_soft_hsm,
-                ]
+test_modules = [
+    test_aead,
+    test_aes_ecb,
+    test_basics,
+    test_buffer,
+    test_db,
+    test_hmac,
+    test_oath,
+    test_otp_validate,
+    test_stick,
+    test_util,
+    test_yubikey_validate,
+    test_misc,
+    test_soft_hsm,
+]
 
 # special, should not be addded to test_modules
 import configure_hsm
@@ -52,7 +53,7 @@ def suite():
 
     # Check if we have a YubiHSM present, and start with locking it's keystore
     # XXX produce a better error message than 'error: None' when initializing fails
-    hsm = pyhsm.YHSM(device = os.getenv('YHSM_DEVICE', '/dev/ttyACM0'))
+    hsm = pyhsm.YHSM(device=os.getenv("YHSM_DEVICE", "/dev/ttyACM0"))
     try:
         hsm.unlock("BADPASSPHRASE99")
     except pyhsm.exception.YHSM_CommandFailed as e:
@@ -60,12 +61,14 @@ def suite():
             if e.status != pyhsm.defines.YSM_MISMATCH:
                 raise
         else:
-            if e.status != pyhsm.defines.YSM_KEY_STORAGE_LOCKED and \
-                    e.status != pyhsm.defines.YSM_FUNCTION_DISABLED:
+            if (
+                e.status != pyhsm.defines.YSM_KEY_STORAGE_LOCKED
+                and e.status != pyhsm.defines.YSM_FUNCTION_DISABLED
+            ):
                 raise
 
     tests = []
-    if os.environ.get('YHSM_ZAP'):
+    if os.environ.get("YHSM_ZAP"):
         tests.append(unittest.TestLoader().loadTestsFromModule(configure_hsm))
     tests += [unittest.TestLoader().loadTestsFromModule(this) for this in test_modules]
 
@@ -76,5 +79,5 @@ def load_tests(loader, rests, pattern):
     return suite()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
